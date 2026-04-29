@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Terminal — Dashboard</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 8l4 4-4 4"/><line x1="12" y1="16" x2="18" y2="16"/>
+        <rect x="2" y="3" width="20" height="15" rx="2"/>
+      </svg>
+      Web Terminal
+    </div>
+    <a id="admin-link" href="/admin.html" class="btn btn-secondary btn-sm" style="display:none">Admin</a>
+    <span class="navbar-spacer"></span>
+    <span class="navbar-user" id="nav-username"></span>
+    <button id="logout-btn" class="btn btn-secondary btn-sm">Sign out</button>
+  </nav>
+
+  <div class="container">
+    <div id="create-error" class="alert alert-error" style="display:none"></div>
+
+    <div class="section-header">
+      <h2>Your Sessions</h2>
+      <button id="new-terminal-btn" class="btn btn-primary">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z"/>
+        </svg>
+        New Terminal
+      </button>
+    </div>
+
+    <div class="card" style="padding:0">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Session ID</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Last Active</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="sessions-tbody"></tbody>
+        </table>
+      </div>
+      <div id="sessions-empty" class="empty-state" style="display:none">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8b949e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="15" rx="2"/>
+          <path d="M6 8l4 4-4 4"/><line x1="12" y1="16" x2="18" y2="16"/>
+        </svg>
+        <p>No active sessions. Click <strong>New Terminal</strong> to start one.</p>
+      </div>
+    </div>
+
+    <p style="margin-top:12px;color:#8b949e;font-size:12px;">
+      Sessions idle for 30 minutes or older than 4 hours are automatically terminated. Max 3 concurrent sessions.
+    </p>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

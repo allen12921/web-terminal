@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Terminal — Sign in</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; }
+    .login-wrap { width: 340px; }
+    .login-logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .login-logo svg { color: #3fb950; }
+    .login-logo h1 { font-size: 22px; margin-top: 10px; }
+    .login-logo p { color: #8b949e; font-size: 13px; margin-top: 4px; }
+    .login-btn { width: 100%; padding: 9px; font-size: 14px; justify-content: center; }
+  </style>
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-logo">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3" width="20" height="15" rx="2"/>
+        <polyline points="8 21 12 17 16 21"/>
+        <polyline points="7 9 12 14 17 9" transform="rotate(90 12 11)"/>
+        <polyline points="5 10 5 10" style="display:none"/>
+        <path d="M6 8l4 4-4 4"/>
+        <line x1="12" y1="16" x2="18" y2="16"/>
+      </svg>
+      <h1>Web Terminal</h1>
+      <p>Internal Linux practice environment</p>
+    </div>
+
+    <div class="card">
+      <div id="login-error" class="alert alert-error" style="display:none"></div>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" autocomplete="username" required autofocus>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" id="login-btn" class="btn btn-primary login-btn">Sign in</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+services:
+  sandbox-builder:
+    build:
+      context: ./sandbox
+    image: web-terminal-sandbox:latest
+    command: ["echo", "Sandbox image built"]
+    profiles: ["build"]
+
+  backend:
+    build:
+      context: ./backend
+    image: web-terminal-backend:latest
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_HOURS: ${ACCESS_TOKEN_EXPIRE_HOURS:-8}
+      DATABASE_URL: ${DATABASE_URL:-sqlite+aiosqlite:////data/web_terminal.db}
+      SANDBOX_IMAGE: ${SANDBOX_IMAGE:-web-terminal-sandbox:latest}
+      SANDBOX_NETWORK: ${SANDBOX_NETWORK:-web_terminal_sandbox}
+      IDLE_TIMEOUT: ${IDLE_TIMEOUT:-1800}
+      MAX_SESSION_TIME: ${MAX_SESSION_TIME:-14400}
+      CLEANUP_INTERVAL: ${CLEANUP_INTERVAL:-60}
+      MAX_SESSIONS_PER_USER: ${MAX_SESSIONS_PER_USER:-3}
+      CONTAINER_MEMORY: ${CONTAINER_MEMORY:-256m}
+      CONTAINER_CPUS: ${CONTAINER_CPUS:-0.5}
+      CONTAINER_PIDS_LIMIT: ${CONTAINER_PIDS_LIMIT:-50}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/data
+    networks:
+      - web
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "${PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    networks:
+      - web
+
+networks:
+  web:
+    driver: bridge

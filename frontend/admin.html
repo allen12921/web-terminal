@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Terminal — Admin</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 8l4 4-4 4"/><line x1="12" y1="16" x2="18" y2="16"/>
+        <rect x="2" y="3" width="20" height="15" rx="2"/>
+      </svg>
+      Web Terminal
+      <span class="badge badge-blue" style="margin-left:4px">Admin</span>
+    </div>
+    <a href="/dashboard.html" class="btn btn-secondary btn-sm">Dashboard</a>
+    <span class="navbar-spacer"></span>
+    <span class="navbar-user" id="nav-username"></span>
+    <button id="logout-btn" class="btn btn-secondary btn-sm">Sign out</button>
+  </nav>
+
+  <div class="container">
+    <div id="alert-area"></div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="users" onclick="switchTab('users')">Users</div>
+      <div class="tab" data-tab="sessions" onclick="switchTab('sessions')">Active Sessions</div>
+    </div>
+
+    <!-- Users Tab -->
+    <div id="tab-users">
+      <div class="section-header">
+        <h2>Users</h2>
+        <button class="btn btn-primary" onclick="openCreateUser()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z"/>
+          </svg>
+          Add User
+        </button>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Username</th><th>Email</th><th>Active</th><th>Admin</th><th>Created</th></tr>
+            </thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sessions Tab -->
+    <div id="tab-sessions" style="display:none">
+      <div class="section-header">
+        <h2>Active Sessions</h2>
+        <button class="btn btn-secondary" onclick="loadSessions()">Refresh</button>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>User</th><th>Session ID</th><th>Status</th><th>Created</th><th>Last Active</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="sessions-tbody"></tbody>
+          </table>
+        </div>
+        <div id="sessions-empty" class="empty-state" style="display:none">
+          <p>No active sessions.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create User Modal -->
+  <div id="create-user-modal" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-title">Add User</div>
+      <div id="modal-error" class="alert alert-error" style="display:none"></div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="new-username" required>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="new-email" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="new-password" required>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px">
+        <label style="margin-bottom:0">Admin</label>
+        <label class="toggle">
+          <input type="checkbox" id="new-is-admin">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeCreateUser()">Cancel</button>
+        <button class="btn btn-primary" onclick="createUser()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    let currentUser = null;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      if (!getToken()) { window.location.href = "/index.html"; return; }
+      try {
+        currentUser = await apiFetch("/api/auth/me");
+        if (!currentUser.is_admin) { window.location.href = "/dashboard.html"; return; }
+      } catch { return; }
+
+      document.getElementById("nav-username").textContent = currentUser.username;
+      document.getElementById("logout-btn").addEventListener("click", () => {
+        clearToken(); window.location.href = "/index.html";
+      });
+
+      loadUsers();
+      loadSessions();
+    });
+
+    function switchTab(tab) {
+      document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === tab));
+      document.getElementById("tab-users").style.display = tab === "users" ? "block" : "none";
+      document.getElementById("tab-sessions").style.display = tab === "sessions" ? "block" : "none";
+    }
+
+    async function loadUsers() {
+      try {
+        const users = await apiFetch("/api/admin/users");
+        renderUsers(users);
+      } catch (err) { showAlert(err.message, "error"); }
+    }
+
+    function renderUsers(users) {
+      document.getElementById("users-tbody").innerHTML = users.map(u => `
+        <tr>
+          <td><strong>${u.username}</strong> ${u.id === currentUser.id ? '<span class="badge badge-blue">You</span>' : ""}</td>
+          <td>${u.email}</td>
+          <td>
+            <label class="toggle"><input type="checkbox" ${u.is_active ? "checked" : ""}
+              onchange="toggleUser(${u.id}, 'is_active', this.checked)">
+              <span class="toggle-slider"></span></label>
+          </td>
+          <td>
+            <label class="toggle"><input type="checkbox" ${u.is_admin ? "checked" : ""}
+              onchange="toggleUser(${u.id}, 'is_admin', this.checked)">
+              <span class="toggle-slider"></span></label>
+          </td>
+          <td style="color:#8b949e;font-size:12px">${formatDate(u.created_at)}</td>
+        </tr>
+      `).join("");
+    }
+
+    async function toggleUser(id, field, value) {
+      try {
+        await apiFetch(`/api/admin/users/${id}`, {
+          method: "PUT",
+          body: JSON.stringify({ [field]: value }),
+        });
+        showAlert("Updated", "success");
+      } catch (err) {
+        showAlert(err.message, "error");
+        loadUsers();
+      }
+    }
+
+    async function loadSessions() {
+      try {
+        const sessions = await apiFetch("/api/admin/sessions");
+        renderSessions(sessions);
+      } catch {}
+    }
+
+    function renderSessions(sessions) {
+      const tbody = document.getElementById("sessions-tbody");
+      const empty = document.getElementById("sessions-empty");
+      if (!sessions.length) { tbody.innerHTML = ""; empty.style.display = "block"; return; }
+      empty.style.display = "none";
+      tbody.innerHTML = sessions.map(s => `
+        <tr>
+          <td>${s.username}</td>
+          <td class="mono" style="font-size:12px">${s.id.substring(0,8)}…</td>
+          <td>${statusBadge(s.status)}</td>
+          <td style="color:#8b949e;font-size:12px">${formatDate(s.created_at)}</td>
+          <td style="color:#8b949e;font-size:12px">${timeAgo(s.last_activity)}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="forceTerminate('${s.id}')">Terminate</button></td>
+        </tr>
+      `).join("");
+    }
+
+    async function forceTerminate(id) {
+      if (!confirm("Force terminate this session?")) return;
+      try {
+        await apiFetch(`/api/admin/sessions/${id}`, { method: "DELETE" });
+        await loadSessions();
+      } catch (err) { showAlert(err.message, "error"); }
+    }
+
+    function openCreateUser() { document.getElementById("create-user-modal").classList.add("open"); }
+    function closeCreateUser() {
+      document.getElementById("create-user-modal").classList.remove("open");
+      document.getElementById("modal-error").style.display = "none";
+    }
+
+    async function createUser() {
+      const errEl = document.getElementById("modal-error");
+      errEl.style.display = "none";
+      const body = {
+        username: document.getElementById("new-username").value,
+        email: document.getElementById("new-email").value,
+        password: document.getElementById("new-password").value,
+        is_admin: document.getElementById("new-is-admin").checked,
+      };
+      try {
+        await apiFetch("/api/admin/users", { method: "POST", body: JSON.stringify(body) });
+        closeCreateUser();
+        loadUsers();
+        showAlert("User created", "success");
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = "block";
+      }
+    }
+
+    let alertTimer;
+    function showAlert(msg, type) {
+      const el = document.getElementById("alert-area");
+      el.innerHTML = `<div class="alert alert-${type === "error" ? "error" : "success"}">${msg}</div>`;
+      clearTimeout(alertTimer);
+      alertTimer = setTimeout(() => el.innerHTML = "", 3000);
+    }
+
+    function statusBadge(s) {
+      const m = { active: ["badge-green","Active"], idle: ["badge-yellow","Idle"], pending: ["badge-yellow","Starting"] };
+      const [c, l] = m[s] || ["badge-gray", s];
+      return `<span class="badge ${c}">${l}</span>`;
+    }
+
+    function formatDate(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso.endsWith("Z") ? iso : iso + "Z");
+      return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function timeAgo(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso.endsWith("Z") ? iso : iso + "Z");
+      const diff = Math.floor((Date.now() - d) / 1000);
+      if (diff < 60) return `${diff}s ago`;
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      return `${Math.floor(diff / 3600)}h ago`;
+    }
+  </script>
+</body>
+</html>
