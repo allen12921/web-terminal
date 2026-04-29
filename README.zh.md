@@ -203,4 +203,4 @@ ls -la /var/run/docker.sock
 
 ## 许可
 
-仅限内部使用。
+[MIT](./LICENSE)

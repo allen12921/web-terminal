@@ -200,4 +200,4 @@ ls -la /var/run/docker.sock
 
 ## License
 
-Internal use only.
+[MIT](./LICENSE)
