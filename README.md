@@ -11,6 +11,7 @@ A browser-based Linux terminal service for internal use. Each user gets an isola
 - **Session management** — auto-terminates idle sessions (30 min), hard limit of 4 hours
 - **User management** — admin panel to create users and force-terminate sessions
 - **Reconnect support** — container stays alive on disconnect; reconnect to the same session
+- **SSH private key injection** — users can save an SSH private key from the web UI for new sessions
 - **No build step** — frontend is plain HTML/CSS/JS served by nginx
 
 ## Tech Stack
@@ -57,6 +58,7 @@ open http://localhost
 3. A bash terminal opens in your browser — use it like any Linux shell
 4. Click **Disconnect** or close the tab to disconnect (session stays alive for reconnect)
 5. Sessions idle for 30 minutes are automatically terminated
+6. Optional: save an SSH private key on the dashboard; new shells will load it into the container, and it is exposed as `SSH_PRIVATE_KEY`
 
 ### For admins
 
@@ -127,6 +129,10 @@ docker compose build backend && docker compose up -d backend
 ```
 POST   /api/auth/login              # Form: username + password → JWT
 GET    /api/auth/me                 # Current user profile
+
+GET    /api/profile/ssh-key         # SSH private key presence status for current user
+PUT    /api/profile/ssh-key         # Save/replace the SSH private key
+DELETE /api/profile/ssh-key         # Delete the saved SSH private key
 
 POST   /api/sessions                # Create session (starts a container)
 GET    /api/sessions                # List your active sessions

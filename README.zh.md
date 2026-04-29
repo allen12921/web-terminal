@@ -11,6 +11,7 @@
 - **会话管理** — 闲置 30 分钟自动终止，最长使用 4 小时
 - **用户管理** — 管理员面板可创建用户、强制终止会话
 - **断线重连** — 断开连接后容器保持运行，可随时重新连接
+- **SSH 私钥注入** — 用户可在 Web 界面保存 SSH 私钥，供新会话使用
 - **无需构建** — 前端为纯 HTML/CSS/JS，由 nginx 直接托管
 
 ## 技术栈
@@ -57,6 +58,7 @@ open http://localhost
 3. 浏览器中打开 bash 终端，像使用普通 Linux shell 一样操作
 4. 点击 **Disconnect** 或关闭标签页断开连接（容器保持运行，可重新连接）
 5. 闲置 30 分钟后会话自动终止
+6. 可选：在 dashboard 中保存 SSH 私钥；新 shell 会把它注入容器，并通过 `SSH_PRIVATE_KEY` 暴露给登录 shell
 
 ### 管理员
 
@@ -127,6 +129,10 @@ docker compose build backend && docker compose up -d backend
 ```
 POST   /api/auth/login              # 表单：username + password → JWT
 GET    /api/auth/me                 # 当前用户信息
+
+GET    /api/profile/ssh-key         # 当前用户 SSH 私钥保存状态
+PUT    /api/profile/ssh-key         # 保存或替换 SSH 私钥
+DELETE /api/profile/ssh-key         # 删除已保存的 SSH 私钥
 
 POST   /api/sessions                # 创建会话（启动容器）
 GET    /api/sessions                # 列出当前用户的活跃会话

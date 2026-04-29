@@ -22,6 +22,15 @@ class UserOut(BaseModel):
     is_active: bool
     is_admin: bool
     created_at: str
+    has_ssh_key: bool = False
+
+
+class SSHKeyUpdate(BaseModel):
+    ssh_private_key: Optional[str] = None
+
+
+class SSHKeyStatus(BaseModel):
+    has_private_key: bool = False
 
 
 class TokenResponse(BaseModel):

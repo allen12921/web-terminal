@@ -1,5 +1,6 @@
 let currentUser = null;
 let pollTimer = null;
+let sshKeyStatus = { has_private_key: false };
 
 document.addEventListener("DOMContentLoaded", async () => {
   if (!getToken()) {
@@ -17,14 +18,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (currentUser.is_admin) {
     document.getElementById("admin-link").style.display = "inline-flex";
   }
+  renderSshKeyNote();
 
   document.getElementById("logout-btn").addEventListener("click", () => {
     clearToken();
     window.location.href = "/index.html";
   });
-
   document.getElementById("new-terminal-btn").addEventListener("click", createSession);
+  document.getElementById("save-ssh-key-btn").addEventListener("click", saveSshKeys);
+  document.getElementById("delete-ssh-key-btn").addEventListener("click", deleteSshKeys);
 
+  await loadSshKeyStatus();
   await loadSessions();
   pollTimer = setInterval(loadSessions, 8000);
 });
@@ -79,6 +83,101 @@ async function createSession() {
     btn.disabled = false;
     btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2Z"/></svg> New Terminal`;
   }
+}
+
+function renderSshKeyNote() {
+  const note = document.getElementById("ssh-key-note");
+  if (!note) return;
+
+  note.style.display = "block";
+  if (sshKeyStatus.has_private_key) {
+    note.innerHTML = `
+      <strong>SSH private key detected.</strong>
+      New terminal sessions will expose it as <span class="mono">SSH_PRIVATE_KEY</span> in the login shell environment.
+    `;
+    return;
+  }
+
+  note.innerHTML = `
+    Add an SSH private key here to make it available inside new terminal sessions.
+    A saved private key will be exposed to the login shell as <span class="mono">SSH_PRIVATE_KEY</span>.
+  `;
+}
+
+async function loadSshKeyStatus() {
+  try {
+    sshKeyStatus = await apiFetch("/api/profile/ssh-key");
+    currentUser.has_ssh_key = Boolean(sshKeyStatus.has_private_key);
+    renderSshKeyNote();
+    renderSshKeyStatus();
+  } catch (err) {
+    showSshAlert(err.message || "Failed to load SSH key status", "error");
+  }
+}
+
+function renderSshKeyStatus() {
+  const el = document.getElementById("ssh-key-status");
+  if (!el) return;
+
+  const privateLabel = sshKeyStatus.has_private_key ? "Private key saved" : "No private key";
+  const privateClass = sshKeyStatus.has_private_key ? "badge-green" : "badge-gray";
+
+  el.innerHTML = `
+    <span class="badge ${privateClass}">${privateLabel}</span>
+  `;
+}
+
+async function saveSshKeys() {
+  const privateKey = document.getElementById("ssh-private-key").value.trim();
+  if (!privateKey) {
+    showSshAlert("Enter a private key before saving", "error");
+    return;
+  }
+
+  const btn = document.getElementById("save-ssh-key-btn");
+  btn.disabled = true;
+
+  try {
+    await apiFetch("/api/profile/ssh-key", {
+      method: "PUT",
+      body: JSON.stringify({ ssh_private_key: privateKey }),
+    });
+    document.getElementById("ssh-private-key").value = "";
+    showSshAlert("Private key saved", "success");
+    await loadSshKeyStatus();
+  } catch (err) {
+    showSshAlert(err.message || "Failed to save private key", "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteSshKeys() {
+  if (!confirm("Delete the saved private key?")) return;
+
+  const btn = document.getElementById("delete-ssh-key-btn");
+  btn.disabled = true;
+
+  try {
+    await apiFetch("/api/profile/ssh-key", { method: "DELETE" });
+    document.getElementById("ssh-private-key").value = "";
+    currentUser.has_ssh_key = false;
+    sshKeyStatus = { has_private_key: false };
+    renderSshKeyNote();
+    renderSshKeyStatus();
+    showSshAlert("Saved private key deleted", "success");
+  } catch (err) {
+    showSshAlert(err.message || "Failed to delete private key", "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function showSshAlert(message, type) {
+  const el = document.getElementById("ssh-key-alert");
+  el.className = `alert alert-${type === "error" ? "error" : "success"}`;
+  el.textContent = message;
+  el.style.display = "block";
 }
 
 async function terminateSession(id) {

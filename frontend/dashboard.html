@@ -23,6 +23,31 @@
 
   <div class="container">
     <div id="create-error" class="alert alert-error" style="display:none"></div>
+    <div id="ssh-key-note" class="info-banner" style="display:none"></div>
+
+    <div class="section-header">
+      <h2>SSH Private Key</h2>
+    </div>
+
+    <div class="card ssh-settings-card">
+      <div id="ssh-key-alert" class="alert" style="display:none"></div>
+      <p class="ssh-settings-copy">
+        Save an SSH private key to make it available in new terminal sessions. The login shell will expose it as
+        <span class="mono">SSH_PRIVATE_KEY</span>.
+      </p>
+      <div id="ssh-key-status" class="ssh-key-status"></div>
+      <div class="form-group">
+        <label for="ssh-private-key">Private Key</label>
+        <textarea id="ssh-private-key" rows="8" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"></textarea>
+      </div>
+      <p class="ssh-settings-note">
+        Saving replaces the currently stored private key. Delete removes the saved private key.
+      </p>
+      <div class="ssh-settings-actions">
+        <button id="save-ssh-key-btn" class="btn btn-primary">Save Private Key</button>
+        <button id="delete-ssh-key-btn" class="btn btn-secondary">Delete Private Key</button>
+      </div>
+    </div>
 
     <div class="section-header">
       <h2>Your Sessions</h2>

@@ -31,6 +31,15 @@ html, body {
   font-size: 11px;
 }
 
+.terminal-topbar .ssh-env-hint {
+  color: #e3b341;
+  font-size: 11px;
+  border: 1px solid rgba(227, 179, 65, 0.25);
+  background: rgba(227, 179, 65, 0.08);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
 .terminal-topbar .age-counter {
   margin-left: auto;
   color: #8b949e;

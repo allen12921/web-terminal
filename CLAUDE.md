@@ -32,6 +32,9 @@ aiodocker's `read_out()` uses multiplexed framing (8-byte header) that breaks wh
 **Docker socket mounted in backend container (DooD).**
 The backend creates/destroys sandbox containers at runtime via the host Docker daemon. The backend runs as root in docker-compose to access `/var/run/docker.sock`.
 
+**SSH private key support is private-key only.**
+Users can save an SSH private key from the dashboard. On session creation, the backend writes it into the sandbox as `/home/sandbox/.ssh/id_rsa`. On terminal connect, `terminal_bridge.py` also injects the same value into the login shell environment as `SSH_PRIVATE_KEY`. There is no public key workflow anymore; do not reintroduce one unless there is a concrete use case.
+
 ## Common Commands
 
 ```bash
@@ -71,6 +74,7 @@ backend/
 
 sandbox/Dockerfile      # Ubuntu 22.04, sandbox user (uid 1001), common tools
 frontend/               # Pure HTML/CSS/JS, served by nginx, no build step
+  dashboard.html        # Session list + SSH private key management UI
 nginx/nginx.conf        # Static files + /api/ and /ws/ proxy with WS upgrade
 data/                   # SQLite DB volume mount
 ```
@@ -111,6 +115,14 @@ Server → Client:
 ## Database Schema
 
 Two tables: `users` and `sessions`. SQLite at `/data/web_terminal.db` (volume-mounted from `./data/`). Schema is auto-created at startup in `database.py:init_db()`. No migration tooling — for schema changes, drop and recreate (internal tool, no persistent user data worth preserving).
+
+Current user SSH state is stored in `users.ssh_private_key`.
+
+Relevant routes:
+- `GET /api/auth/me` — includes `has_ssh_key`
+- `GET /api/profile/ssh-key` — returns whether the current user has a saved private key
+- `PUT /api/profile/ssh-key` — save or replace the private key
+- `DELETE /api/profile/ssh-key` — remove the saved private key
 
 ## Security Notes
 

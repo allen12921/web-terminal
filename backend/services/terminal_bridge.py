@@ -5,11 +5,17 @@ import os
 import pty
 import struct
 import termios
+from typing import Optional
 from fastapi import WebSocket
 import services.session_manager as sm
 
 
-async def run_terminal(websocket: WebSocket, session_id: str, container_id: str):
+async def run_terminal(
+    websocket: WebSocket,
+    session_id: str,
+    container_id: str,
+    ssh_private_key: Optional[str] = None,
+):
     await websocket.accept()
     sm.active_connections[session_id] = websocket
 
@@ -21,8 +27,13 @@ async def run_terminal(websocket: WebSocket, session_id: str, container_id: str)
         master_fd, slave_fd = pty.openpty()
         _set_winsize(master_fd, 24, 80)
 
+        docker_exec_cmd = ["docker", "exec", "-it"]
+        if ssh_private_key:
+            docker_exec_cmd += ["-e", f"SSH_PRIVATE_KEY={ssh_private_key.strip()}"]
+        docker_exec_cmd += [container_id, "bash", "--login"]
+
         proc = await asyncio.create_subprocess_exec(
-            "docker", "exec", "-it", container_id, "bash", "--login",
+            *docker_exec_cmd,
             stdin=slave_fd,
             stdout=slave_fd,
             stderr=slave_fd,

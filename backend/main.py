@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import init_db
 from services.docker_manager import close_docker
 from services.session_manager import cleanup_loop, terminate_all_sessions
-from routers import auth, sessions, admin, terminal
+from routers import auth, sessions, admin, terminal, profile
 
 
 @asynccontextmanager
@@ -36,6 +36,7 @@ app.include_router(auth.router)
 app.include_router(sessions.router)
 app.include_router(admin.router)
 app.include_router(terminal.router)
+app.include_router(profile.router)
 
 
 @app.get("/health")

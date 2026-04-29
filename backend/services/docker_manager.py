@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import aiodocker
 from aiodocker.docker import Docker
 from config import settings
@@ -27,6 +28,7 @@ async def ensure_sandbox_network():
     except aiodocker.exceptions.DockerError:
         await docker.networks.create({
             "Name": settings.sandbox_network,
+#            "Internal": True,
             "Driver": "bridge",
             "Labels": {"web-terminal": "network"},
         })
@@ -115,6 +117,50 @@ async def list_sandbox_containers() -> list[str]:
         return [c.id for c in containers]
     except Exception:
         return []
+
+
+async def inject_ssh_keys(container_id: str, private_key: str):
+    """Inject an SSH private key into a running container as the sandbox user.
+
+    Uses base64 encoding to safely transfer key material with arbitrary content.
+    NOTE: SSH private keys are stored and transmitted in plaintext within this
+    internal tool. Do not expose ssh_private_key in any API response.
+    """
+    docker = await get_docker()
+    container = await docker.containers.get(container_id)
+
+    priv = private_key.strip() if private_key else ""
+
+    def b64(s: str) -> str:
+        return base64.b64encode(s.encode()).decode()
+
+    cmds = ["mkdir -p /home/sandbox/.ssh", "chmod 700 /home/sandbox/.ssh"]
+
+    if priv:
+        cmds += [
+            f"echo '{b64(priv)}' | base64 -d > /home/sandbox/.ssh/id_rsa",
+            "chmod 600 /home/sandbox/.ssh/id_rsa",
+        ]
+
+    cmds += [
+        "printf 'Host *\\n  StrictHostKeyChecking accept-new\\n  IdentitiesOnly yes\\n' "
+        "> /home/sandbox/.ssh/config",
+        "chmod 600 /home/sandbox/.ssh/config",
+        "chown -R sandbox:sandbox /home/sandbox/.ssh",
+    ]
+
+    exec_inst = await container.exec(
+        cmd=["bash", "-c", " && ".join(cmds)],
+        user="root",
+        stdout=True,
+        stderr=True,
+    )
+    stream = exec_inst.start(detach=False)
+    async with stream:
+        while True:
+            msg = await stream.read_out()
+            if msg is None:
+                break
 
 
 def _parse_memory(mem_str: str) -> int:

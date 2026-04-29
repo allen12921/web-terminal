@@ -19,6 +19,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("session-id-display").textContent = sessionId.substring(0, 8) + "…";
 
+  try {
+    const sshKeyStatus = await apiFetch("/api/profile/ssh-key");
+    if (sshKeyStatus?.has_private_key) {
+      const hint = document.getElementById("ssh-env-hint");
+      hint.textContent = "SSH_PRIVATE_KEY available in this shell";
+      hint.style.display = "inline";
+    }
+  } catch {}
+
   initTerminal();
   connect();
 

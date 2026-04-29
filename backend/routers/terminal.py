@@ -43,8 +43,13 @@ async def terminal_ws(websocket: WebSocket, session_id: str, token: str = Query(
         await websocket.close(code=4002, reason="Container not running")
         return
 
+    ssh_credentials = await sm.get_user_ssh_credentials(user_id)
+    ssh_private_key = ""
+    if ssh_credentials:
+        ssh_private_key = (ssh_credentials.get("ssh_private_key") or "").strip()
+
     try:
-        await run_terminal(websocket, session_id, container_id)
+        await run_terminal(websocket, session_id, container_id, ssh_private_key)
     except WebSocketDisconnect:
         pass
     finally:

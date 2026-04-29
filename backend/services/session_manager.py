@@ -17,6 +17,17 @@ def new_session_id() -> str:
     return str(uuid.uuid4())
 
 
+async def get_user_ssh_credentials(user_id: int) -> Optional[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT ssh_private_key FROM users WHERE id = ?",
+            (user_id,),
+        ) as cur:
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+
 async def create_session(user_id: int) -> dict:
     session_id = new_session_id()
     async with aiosqlite.connect(DB_PATH) as db:
@@ -30,6 +41,17 @@ async def create_session(user_id: int) -> dict:
                 return None
 
         container_id = await dm.create_container(session_id)
+
+        key_row = await get_user_ssh_credentials(user_id)
+        if key_row and key_row["ssh_private_key"]:
+            try:
+                await dm.inject_ssh_keys(
+                    container_id,
+                    key_row["ssh_private_key"] or "",
+                )
+            except Exception:
+                pass  # SSH key injection failure must not block session creation
+
         await db.execute(
             "INSERT INTO sessions (id, user_id, container_id, status) VALUES (?, ?, ?, 'active')",
             (session_id, user_id, container_id),

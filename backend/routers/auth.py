@@ -37,8 +37,10 @@ async def login(
 @router.get("/me", response_model=UserOut)
 async def me(user: dict = Depends(get_current_user), db: aiosqlite.Connection = Depends(get_db)):
     async with db.execute(
-        "SELECT id, username, email, is_active, is_admin, created_at FROM users WHERE id = ?",
+        "SELECT id, username, email, is_active, is_admin, created_at, ssh_private_key FROM users WHERE id = ?",
         (user["id"],),
     ) as cur:
         row = await cur.fetchone()
-    return dict(row)
+    result = dict(row)
+    result["has_ssh_key"] = bool(result.pop("ssh_private_key"))
+    return result
